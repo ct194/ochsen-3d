@@ -1,0 +1,176 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><title>Gantrisch 3D-Geländemodell</title></head><body>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+  /* Layout: Kopfzeile mit Varianten-Tabs, darunter die Bühne mit dem 3D-Modell, darunter die Legende. */
+  :root {
+    --bg: #eef0ee; --surface: #ffffff; --fg: #1d2421; --muted: #5d6965; --line: #cfd6d2;
+    --accent: #2f6b4f; --accent-fg: #ffffff; --stage: #dfe4e1;
+    --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141816; --surface: #1c221f; --fg: #e6ebe8; --muted: #98a39e; --line: #2d3531;
+      --accent: #7cc4a0; --accent-fg: #10231a; --stage: #0f1311; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141816; --surface: #1c221f; --fg: #e6ebe8; --muted: #98a39e; --line: #2d3531;
+    --accent: #7cc4a0; --accent-fg: #10231a; --stage: #0f1311; color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--fg); font-family: var(--font-body);
+    padding-block: 12px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: flex; flex-direction: column; gap: 10px; font-size: 15px;
+  }
+  header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+  h1 { font-size: 1.15rem; font-weight: 600; margin: 0; text-wrap: balance; }
+  .meta { font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); margin: 4px 0 0; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+  button { font: inherit; font-size: 0.9rem; font-weight: 600; padding: 8px 12px; border-radius: 6px; cursor: pointer; background: var(--surface); color: var(--fg); border: 1px solid var(--line); }
+  button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .stage { position: relative; flex: 1; min-height: 320px; background: var(--stage); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  #cv { position: absolute; inset: 0; }
+  #cv canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  .status { position: absolute; left: 12px; bottom: 12px; right: 12px; font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); pointer-events: none; }
+  .bar { height: 3px; background: var(--line); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+  .reset { position: absolute; right: 10px; top: 10px; }
+  .legend { display: flex; flex-direction: column; gap: 4px; }
+  .legend .grad { height: 12px; border-radius: 3px; border: 1px solid var(--line); }
+  .legend .lab { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); }
+  .hint { margin: 0; color: var(--muted); font-size: 0.85rem; }
+</style>
+
+<header>
+  <div>
+    <h1>Viehstufen am Gantrisch: 3D-Modell aus Handyfotos</h1>
+    <p class="meta" id="meta"></p>
+  </div>
+  <div class="tabs" role="group" aria-label="Variante wählen">
+    <button data-f="m1/model.json" type="button" aria-pressed="true">Modell 1</button>
+    <button data-f="m1/v1.json" type="button" aria-pressed="false">1 Lücken gefüllt</button>
+    <button data-f="m1/v2.json" type="button" aria-pressed="false">2 Unterseite</button>
+    <button data-f="m1/v3.json" type="button" aria-pressed="false">3 Höhe</button>
+    <button data-f="m1/v4.json" type="button" aria-pressed="false">4 Gangeln</button>
+  </div>
+</header>
+
+<div class="stage">
+  <div id="cv"></div>
+  <button class="reset" id="reset" type="button">Ansicht zurücksetzen</button>
+  <div class="status" id="status"><span id="stxt">Lade Modell …</span><div class="bar"><i id="bar"></i></div></div>
+</div>
+<div class="legend" id="legend" hidden>
+  <div class="grad" id="grad"></div>
+  <div class="lab"><span id="l0"></span><span id="l1"></span><span id="l2"></span></div>
+</div>
+<p class="hint">Ein Finger dreht frei in alle Richtungen, zwei Finger zoomen und verschieben.</p>
+
+<script src="lib/three.min.js"></script>
+<script src="lib/GLTFLoader.js"></script>
+<script src="lib/TrackballControls.js"></script>
+<script>
+  var info = {
+    'm1/model.json': 'Modell 1, Original · 60 Texturen · 273.000 Dreiecke',
+    'm1/v1.json': 'Modell 1, bereinigt: lose Schnipsel entfernt, Lücken gefüllt · orange = interpoliert, keine Messung',
+    'm1/v2.json': 'Modell 1, bereinigt, Unterseite einfarbig grau',
+    'm1/v3.json': 'Modell 1, Höhe über der Stufenebene (Ausgleichsebene, waagerecht gestellt) · Linien alle 1,5 cm, dick alle 7,6 cm (Maßstab geeicht an der Tempopackung, 11 cm)',
+    'm1/v4.json': 'Modell 1, Gangeln markiert · blau = mehr als ca. 7 cm unter der Ausgleichsebene (Stufenniveau) · gelbes Maßband quer zu den Gangeln, Striche alle 10 cm, Abstände Mitte zu Mitte (Maßstab geeicht an der Tempopackung, 11 cm)'
+  };
+  var legends = {
+    'm1/v3.json': { g: '#424bb5, #4291fe, #1ad1d2, #42f687, #a4fc3b, #e3da37, #fe9e2e, #ea500d, #b61c01', a: 'ca. 21 cm  tiefer', b: '0 = Ausgleichsebene', c: 'ca. 15 cm  höher' },
+    'm1/v4.json': { g: '#ffffff, #3380ff', a: 'Stufenfläche', b: '', c: 'Gangel, ab ca. 7 cm tiefer' }
+  };
+  var stage = document.getElementById('cv'), stxt = document.getElementById('stxt'), st = document.getElementById('status'), bar = document.getElementById('bar');
+  var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  stage.appendChild(renderer.domElement);
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(40, 1, 0.05, 500);
+  scene.add(camera);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xaaaaaa, 0.55));
+  var head = new THREE.DirectionalLight(0xffffff, 0.7); head.position.set(0.4, 0.8, 1); camera.add(head);
+  var controls = new THREE.TrackballControls(camera, renderer.domElement);
+  controls.rotateSpeed = 3.2; controls.zoomSpeed = 1.4; controls.panSpeed = 0.9; controls.dynamicDampingFactor = 0.15;
+  var vdir = new THREE.Vector3(0, 0, -1);
+  var loader = new THREE.GLTFLoader(), model = null, dist = 14, token = 0;
+  function resize() {
+    var w = stage.clientWidth, h = stage.clientHeight; if (!w || !h) return;
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); controls.handleResize();
+  }
+  new ResizeObserver(resize).observe(stage); resize();
+  function resetView() {
+    camera.position.set(-vdir.x * Math.cos(0.6981) * dist, Math.sin(0.6981) * dist, -vdir.z * Math.cos(0.6981) * dist); camera.up.set(0, 1, 0); controls.target.set(0, 0, 0);
+    camera.lookAt(0, 0, 0); controls.update();
+  }
+  document.getElementById('reset').onclick = resetView;
+  function dispose(o) {
+    o.traverse(function (n) {
+      if (n.geometry) n.geometry.dispose();
+      if (n.material) { var m = n.material; if (m.map) m.map.dispose(); m.dispose(); }
+    });
+  }
+
+  function mkLabel(text, kind) {
+    var c = document.createElement('canvas'), x = c.getContext('2d'); c.width = 256; c.height = 96;
+    x.font = '600 52px IBM Plex Sans, system-ui, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillStyle = kind === 's' ? 'rgba(20,24,22,0.88)' : 'rgba(255,255,255,0.92)';
+    var w = x.measureText(text).width + 40; x.fillRect(128 - w / 2, 12, w, 72);
+    x.fillStyle = kind === 's' ? '#ffd23f' : '#12203a'; x.fillText(text, 128, 50);
+    var t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding;
+    var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthTest: false, transparent: true }));
+    sp.scale.set(kind === 's' ? 0.95 : 0.6, (kind === 's' ? 0.95 : 0.6) * 96 / 256, 1); sp.renderOrder = 10; return sp;
+  }
+  function addTape(parent, d) {
+    var g = new THREE.Group(); g.name = 'tape';
+    function tube(pts, r, col) {
+      var v = pts.map(function (p) { return new THREE.Vector3(p[0], p[1], p[2]); });
+      if (v.length < 2) return;
+      var m = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(v), Math.max(8, v.length * 2), r, 6, false),
+        new THREE.MeshBasicMaterial({ color: col, depthTest: false, transparent: true, opacity: 0.95 }));
+      m.renderOrder = 9; g.add(m);
+    }
+    d.tape.forEach(function (p) { tube(p, 0.022, 0xffd23f); });
+    d.grooves.forEach(function (p) { tube(p, 0.014, 0xff3b30); });
+    d.ticks.forEach(function (p) { tube(p, 0.012, 0x111111); });
+    d.labels.forEach(function (l) { var sp = mkLabel(l.text, l.kind); sp.position.set(l.pos[0], l.pos[1], l.pos[2]); g.add(sp); });
+    parent.add(g);
+  }
+  function show(file) {
+    var my = ++token;
+    st.hidden = false; stxt.textContent = 'Lade Modell …'; bar.style.width = '0';
+    document.getElementById('meta').textContent = info[file];
+    var btns = document.querySelectorAll('.tabs button');
+    for (var i = 0; i < btns.length; i++) btns[i].setAttribute('aria-pressed', String(btns[i].getAttribute('data-f') === file));
+    var lg = legends[file], el = document.getElementById('legend');
+    el.hidden = !lg;
+    if (lg) { document.getElementById('grad').style.background = 'linear-gradient(to right, ' + lg.g + ')'; document.getElementById('l0').textContent = lg.a; document.getElementById('l1').textContent = lg.b; document.getElementById('l2').textContent = lg.c; }
+    loader.load(file, function (gltf) {
+      if (my !== token) { dispose(gltf.scene); return; }
+      if (model) { scene.remove(model); dispose(model); }
+      model = gltf.scene; scene.add(model);
+      var nrm = new THREE.Vector3(0.525881, 0.548825, 0.649800), upv = new THREE.Vector3(0, 1, 0);
+      var q1 = new THREE.Quaternion().setFromUnitVectors(nrm, upv);
+      var ec = new THREE.Vector3().crossVectors(upv, nrm).normalize().applyQuaternion(q1);
+      var q2 = new THREE.Quaternion().setFromAxisAngle(upv, Math.atan2(ec.z, ec.x));
+      model.quaternion.copy(q2.multiply(q1));
+      if (file === 'm1/v4.json') fetch('m1/tape.json').then(function (r) { return r.json(); }).then(function (d) { if (my === token) addTape(model, d); }).catch(function () {});
+      vdir.set(0.688561, 0.173801, -0.704043).applyQuaternion(model.quaternion); vdir.y = 0; vdir.normalize();
+      var box = new THREE.Box3().setFromObject(model), s = new THREE.Vector3(); box.getSize(s);
+      dist = Math.max(8, s.length() * 0.6);
+      if (!window.__viewSet) { resetView(); window.__viewSet = true; }
+      st.hidden = true; window.__loaded = file;
+    }, function (e) { if (e.lengthComputable && my === token) bar.style.width = Math.round(100 * e.loaded / e.total) + '%'; },
+    function () { if (my === token) { st.hidden = false; stxt.textContent = 'Modell konnte nicht geladen werden. Seite neu laden.'; } });
+  }
+  var btns = document.querySelectorAll('.tabs button');
+  for (var i = 0; i < btns.length; i++) btns[i].onclick = function () { show(this.getAttribute('data-f')); };
+  (function loop() { requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); })();
+  show('m1/model.json');
+</script>
+
+</body></html>
