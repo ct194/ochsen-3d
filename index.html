@@ -46,7 +46,7 @@
 
 <header>
   <div>
-    <h1>Viehstufen am Gantrisch: 3D-Modell aus Handyfotos</h1>
+    <h1>Viehstufen am Gantrisch · 3D-Modell</h1>
     <p class="meta" id="meta"></p>
   </div>
   <div class="tabs" role="group" aria-label="Variante wählen">
@@ -67,22 +67,22 @@
   <div class="grad" id="grad"></div>
   <div class="lab"><span id="l0"></span><span id="l1"></span><span id="l2"></span></div>
 </div>
-<p class="hint">Ein Finger dreht frei in alle Richtungen, zwei Finger zoomen und verschieben.</p>
+<p class="hint">1 Finger drehen · 2 Finger zoomen</p>
 
 <script src="lib/three.min.js"></script>
 <script src="lib/GLTFLoader.js"></script>
 <script src="lib/TrackballControls.js"></script>
 <script>
   var info = {
-    'm1/model.json': 'Modell 1, Original · 60 Texturen · 273.000 Dreiecke',
-    'm1/v1.json': 'Modell 1, bereinigt: lose Schnipsel entfernt, Lücken gefüllt · orange = interpoliert, keine Messung',
-    'm1/v2.json': 'Modell 1, bereinigt, Unterseite einfarbig grau',
-    'm1/v3.json': 'Modell 1, Höhe über der Stufenebene (Ausgleichsebene, waagerecht gestellt) · Linien alle 1,5 cm, dick alle 7,6 cm (Maßstab geeicht an der Tempopackung, 11 cm)',
-    'm1/v4.json': 'Modell 1, Gangeln markiert · blau = mehr als ca. 7 cm unter der Ausgleichsebene (Stufenniveau) · gelbes Maßband quer zu den Gangeln, Striche alle 10 cm, Abstände Mitte zu Mitte (Maßstab geeicht an der Tempopackung, 11 cm)'
+    'm1/model.json': 'Original aus 235 Handyfotos',
+    'm1/v1.json': 'Lücken gefüllt · orange = ergänzt',
+    'm1/v2.json': 'Unterseite grau',
+    'm1/v3.json': 'Höhe über der Stufe · Linien alle 1,5 cm',
+    'm1/v4.json': 'Gangeln blau · Maßband in cm'
   };
   var legends = {
-    'm1/v3.json': { g: '#424bb5, #4291fe, #1ad1d2, #42f687, #a4fc3b, #e3da37, #fe9e2e, #ea500d, #b61c01', a: 'ca. 21 cm  tiefer', b: '0 = Ausgleichsebene', c: 'ca. 15 cm  höher' },
-    'm1/v4.json': { g: '#ffffff, #3380ff', a: 'Stufenfläche', b: '', c: 'Gangel, ab ca. 7 cm tiefer' }
+    'm1/v3.json': { g: '#424bb5, #4291fe, #1ad1d2, #42f687, #a4fc3b, #e3da37, #fe9e2e, #ea500d, #b61c01', a: '−21 cm', b: '0', c: '+15 cm' },
+    'm1/v4.json': { g: '#ffffff, #3380ff', a: 'Stufe', b: '', c: 'Gangel' }
   };
   var stage = document.getElementById('cv'), stxt = document.getElementById('stxt'), st = document.getElementById('status'), bar = document.getElementById('bar');
   var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
